@@ -41,7 +41,7 @@ return [
             'provider' => 'users',
         ],
         'api' => [
-        'driver' => 'sanctum',  // Nếu sử dụng Sanctum
+        'driver' => 'jwt',
         'provider' => 'users',
         ],
     ],
