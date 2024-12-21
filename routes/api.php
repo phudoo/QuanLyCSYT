@@ -3,6 +3,9 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\ProductController;
+
+Route::apiResource('products', ProductController::class);
 
 
 // Route không yêu cầu xác thực
