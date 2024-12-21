@@ -4,6 +4,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ReportsController;
+
+Route::prefix('reports')->group(function () {
+    Route::get('products', [ReportsController::class, 'getAllProductReports']);
+    Route::get('products/{id}', [ReportsController::class, 'getProductReportById']);
+    Route::get('orders', [ReportsController::class, 'getAllOrderReports']);
+    Route::get('orders/{id}', [ReportsController::class, 'getOrderReportById']);
+    Route::post('products', [ReportsController::class, 'createProductReport']);
+    Route::post('orders', [ReportsController::class, 'createOrderReport']);
+    Route::delete('products/{id}', [ReportsController::class, 'deleteProductReport']);
+    Route::delete('orders/{id}', [ReportsController::class, 'deleteOrderReport']);
+});
 
 Route::apiResource('products', ProductController::class);
 
