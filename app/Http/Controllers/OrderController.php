@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -32,17 +34,51 @@ class OrderController extends Controller
         $validated = $request->validate([
             'customer_name' => 'required|string|max:255',
             'customer_email' => 'required|email|max:255',
-            'total_amount' => 'required|numeric|min:0',
+            'items' => 'required|array',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity' => 'required|integer|min:1',
         ]);
 
+        // Calculate total amount
+        $totalAmount = 0;
+        foreach ($validated['items'] as $item) {
+            $product = Product::findOrFail($item['product_id']);
+            if ($product->quantity < $item['quantity']) {
+                return response()->json([
+                    'error' => "Insufficient quantity for product {$product->name}"
+                ], 400);
+            }
+            $totalAmount += $product->price * $item['quantity'];
+        }
+
+        // Create order
         $order = Order::create([
             'customer_name' => $validated['customer_name'],
             'customer_email' => $validated['customer_email'],
-            'total_amount' => $validated['total_amount'],
+            'total_amount' => $totalAmount,
             'status' => 'pending',
         ]);
 
-        return response()->json($order, 201);
+        // Create order items and update product quantities
+        foreach ($validated['items'] as $item) {
+            $product = Product::findOrFail($item['product_id']);
+            
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'quantity' => $item['quantity'],
+                'unit_price' => $product->price,
+                'total_price' => $product->price * $item['quantity'],
+            ]);
+
+            // Update product quantity
+            $product->update([
+                'quantity' => $product->quantity - $item['quantity']
+            ]);
+        }
+
+        return response()->json($order->load('items'), 201);
     }
 
     // Cập nhật trạng thái đơn hàng

@@ -36,4 +36,14 @@ class Order extends Model
         'created_at',
         'updated_at',
     ];
+
+    public function items()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function report()
+    {
+        return $this->hasOne(OrdersReport::class);
+    }
 }

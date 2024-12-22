@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\OrdersReport;
 use App\Models\ProductReport;
+use App\Models\Order;
+use App\Models\Product;
 
 class ReportsController extends Controller
 {
@@ -43,13 +45,47 @@ class ReportsController extends Controller
 
     public function createOrderReport(Request $request)
     {
-        $data = $request->validate([
-            'order_id' => 'required|integer',
-            'total_revenue' => 'required|numeric',
-            'total_cost' => 'required|numeric',
-            'total_profit' => 'required|numeric',
+        $order = Order::findOrFail($request->order_id);
+        
+        // Calculate totals
+        $totalRevenue = $order->total_amount;
+        $totalCost = 0;
+        
+        foreach ($order->items as $item) {
+            $product = Product::find($item->product_id);
+            $totalCost += ($product->cost ?? 0) * $item->quantity;
+        }
+        
+        $totalProfit = $totalRevenue - $totalCost;
+
+        // Create order report
+        $orderReport = OrdersReport::create([
+            'order_id' => $order->id,
+            'total_revenue' => $totalRevenue,
+            'total_cost' => $totalCost,
+            'total_profit' => $totalProfit
         ]);
-        return OrdersReport::create($data);
+
+        // Create product reports
+        foreach ($order->items as $item) {
+            $product = Product::find($item->product_id);
+            $revenue = $item->total_price;
+            $cost = ($product->cost ?? 0) * $item->quantity;
+            
+            ProductReport::create([
+                'order_report_id' => $orderReport->id,
+                'product_id' => $item->product_id,
+                'total_sold' => $item->quantity,
+                'revenue' => $revenue,
+                'cost' => $cost,
+                'profit' => $revenue - $cost
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $orderReport->load('productReports')
+        ], 201);
     }
 
     public function deleteProductReport($id)
